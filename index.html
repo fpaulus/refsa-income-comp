@@ -14,26 +14,130 @@
 
 <body>
 
-    <p>Some text goes here, and then a like button apparently.</p>
+  <div class="container">
+    <h1>REFSA Living Wage Comparison</h1>
 
+    <p>This tool allows you to compare your income to the living wage in your state. The living wage per state has been calculated by REFSA based on the living wage calculated by the BNM, and modified using the spatial price index developed by the World Bank. The methodology and results are explained in this paper. </p>
 
     <div id="income-form">
+      <form>
+        <!-- Input income amount -->
+        <div class="form-group">
+          <label for="income">Your income</label>
+          <input type="income" class="form-control" id="inputIncome" aria-describedby="inputIncomeHelp">
+          <small id="inputIncomeHelp" class="form-text text-muted">All calculations are done locally, so your data never leaves your computer and stays completely private.</small>
+        </div>
+
+        <!-- Input state -->
+        <div class="form-group">
+          <label for="inputState">Your state</label>
+          <select class="form-control" id="inputState">
+            <option value="JHR">Johor</option>
+            <option value="KDH">Kedah</option>
+            <option value="KLN">Kelantan</option>
+            <option value="MLC">Malacca</option>
+            <option value="NSB">N Sembilan</option>
+            <option value="PHG">Pahang</option>
+            <option value="PNG">Penang</option>
+            <option value="PRK">Perak</option>
+            <option value="PRL">Perlis</option>
+            <option value="SBH">Sabah</option>
+            <option value="SRK">Sarawak</option>
+            <option value="SLG">Selangor</option>
+            <option value="TRG">Terengganu</option>
+            <option value="WKL">WP Kuala Lumpur</option>
+            <option value="WLB">WP Labuan</option>
+            <option value="WPT">WP Putrajaya</option>
+          </select>
+        </div>
+
+        <!-- Input household type -->
+        <div class="form-group">
+          <label for="inputHHType">Your household</label>
+          <select class="form-control" id="inputHHType">
+            <option value="1">Single</option>
+            <option value="2">Couple</option>
+            <option value="3">Couple with 2 children</option>
+          </select>
+        </div>
+
+        <button type="button" class="btn btn-primary" onclick="formResults()">Submit</button>
+      </form>
+
+      <div id="showResults">
+      </div>
+
+      <div id="debug">
+      </div>
+
+      <div id="income-map" >
+        <!-- Create an element where the map will take place -->
+        <svg id="my_dataviz" width="400" height="300"></svg>
+      </div>
 
     </div>
 
-    <div id="like_button_container"></div>
+</div>
 
-    <!-- Load Bootstrap -->
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
+  <!-- Load script for computing the results -->
+  <script src="like_button.js"></script>
 
-    <!-- Load React. -->
-    <!-- Note: when deploying, replace "development.js" with "production.min.js". -->
-    <script src="https://unpkg.com/react@16/umd/react.development.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js" crossorigin></script>
+  <!-- Load d3.js -->
+  <script src="https://d3js.org/d3.v4.js"></script>
+  <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+  <script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
 
-    <!-- Load our React component. -->
-    <script src="like_button.js"></script>
+  <!-- Script for displaying the map with data-->
+  <script>
+
+    // The svg
+    var svg = d3.select("svg"),
+      width = +svg.attr("width"),
+      height = +svg.attr("height");
+    
+    // Map and projection
+    var path = d3.geoPath();
+    var projection = d3.geoMercator()
+      .scale(70)
+      .center([0,20])
+      .translate([width / 2, height / 2]);
+    
+    // Data and color scale
+    var data = d3.map();
+    var colorScale = d3.scaleThreshold()
+      .domain([100000, 1000000, 10000000, 30000000, 100000000, 500000000])
+      .range(d3.schemeBlues[7]);
+    
+    // Load external data and boot
+    d3.queue()
+      .defer(d3.json, "MY_States.geojson")
+//      .defer(d3.csv, "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world_population.csv", function(d) { data.set(d.code, +d.pop); })
+      .await(ready);
+    
+    function ready(error, topo) {
+    
+      // Draw the map
+      svg.append("g")
+        .selectAll("path")
+        .data(topo.features)
+        .enter()
+        .append("path")
+          // draw each country
+          .attr("d", d3.geoPath()
+            .projection(projection)
+          )
+          // set the color of each country
+  /*        .attr("fill", function (d) {
+            d.total = data.get(d.id) || 0;
+            return colorScale(d.total); 
+          });*/
+        }
+    
+  </script>
+
+  <!-- Load Bootstrap -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
 
 </body>
 
