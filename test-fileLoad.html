@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
+
+    <title>REFSA - Compare your income to the living wage in your area.</title>
+
+</head>
+
+<body>
+
+  <div class="container">
+    <h1>REFSA Living Wage Comparison</h1>
+
+    <p>This tool allows you to compare your income to the living wage in your state. The living wage per state has been calculated by REFSA based on the living wage calculated by the BNM, and modified using the spatial price index developed by the World Bank. The methodology and results are explained in this paper. </p>
+
+    <div id="income-form">
+      <form>
+        <!-- Input income amount -->
+        <div class="form-group">
+          <label for="income">Your income</label>
+          <input type="income" class="form-control" id="inputIncome" aria-describedby="inputIncomeHelp">
+          <small id="inputIncomeHelp" class="form-text text-muted">All calculations are done locally, so your data never leaves your computer and stays completely private.</small>
+        </div>
+
+        <!-- Input state -->
+        <div class="form-group">
+          <label for="inputState">Your state</label>
+          <select class="form-control" id="inputState">
+            <option value="JHR">Johor</option>
+            <option value="KDH">Kedah</option>
+            <option value="KLN">Kelantan</option>
+            <option value="MLC">Malacca</option>
+            <option value="NSB">N Sembilan</option>
+            <option value="PHG">Pahang</option>
+            <option value="PNG">Penang</option>
+            <option value="PRK">Perak</option>
+            <option value="PRL">Perlis</option>
+            <option value="SBH">Sabah</option>
+            <option value="SRK">Sarawak</option>
+            <option value="SLG">Selangor</option>
+            <option value="TRG">Terengganu</option>
+            <option value="WKL">WP Kuala Lumpur</option>
+            <option value="WLB">WP Labuan</option>
+            <option value="WPT">WP Putrajaya</option>
+          </select>
+        </div>
+
+        <!-- Input household type -->
+        <div class="form-group">
+          <label for="inputHHType">Your household</label>
+          <select class="form-control" id="inputHHType">
+            <option value="single">Single</option>
+            <option value="couple">Couple</option>
+            <option value="couplekids">Couple with 2 children</option>
+          </select>
+        </div>
+
+        <button type="button" class="btn btn-primary" onclick="formResults()">Submit</button>
+      </form>
+
+      <div id="showResults">
+      </div>
+
+      <div id="debug">
+      </div>
+
+      <div id="income-map" >
+        <!-- Create an element where the map will take place -->
+        <svg id="my_dataviz" width="400" height="300"></svg>
+      </div>
+
+    </div>
+
+</div>
+
+  <!-- Load Bootstrap -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
+
+  <!-- Load d3.js -->
+  <script src="https://d3js.org/d3.v5.js"></script>
+
+  <!-- Load turf.js for transformations -->
+  <script src='https://unpkg.com/@turf/turf/turf.min.js'></script>
+
+  <!-- Load script for computing the results -->
+  <script>
+
+    // Set up the results div in the initial pageload
+    let resultMsg = "Fill in the values above to see your results.";
+    let resultDisplay = document.getElementById("showResults");
+    resultDisplay.innerHTML = resultMsg;
+
+    let stateNames = {
+        "JHR": "Johor", 
+        "KDH": "Kedah",
+        "KLN": "Kelantan",
+        "MLK": "Malacca",
+        "NSB": "Negeri Sembilan",
+        "PHG": "Pahang",
+        "PNG": "Penang",
+        "PRK": "Perak",
+        "PRL": "Perlis",
+        "SBH": "Sabah",
+        "SRK": "Sarawak",
+        "SLG": "Selangor",
+        "TRG": "Terengganu",
+        "WKL": "WP Kuala Lumpur",
+        "WLB": "WP Labuan",
+        "WPT": "WP Putrajaya"
+    };
+
+    let stateCodes = [
+        "JHR", 
+        "KDH",
+        "KLN",
+        "MLK",
+        "NSB",
+        "PHG",
+        "PNG",
+        "PRK",
+        "PRL",
+        "SBH",
+        "SRK",
+        "SLG",
+        "TRG",
+        "WKL",
+        "WLB",
+        "WPT"
+    ]
+    console.log(stateCodes[0]);
+
+    let stateRelIncLivingWage = new Map();
+
+    const myLivingWageUrl = "https://raw.githubusercontent.com/fpaulus/refsa-income-comp/main/living_wage.csv";
+    
+    const myLivingWageData = d3.csv(myLivingWageUrl, ({stateId, single, couple, couplekids}) => ({
+        stateId: stateId, 
+        single: +single, 
+        couple: +couple,
+        couplekids: +couplekids
+    }))
+        .then (function(data) {
+            console.log("CSV load: ");
+            console.log(data);
+            return data;
+        })
+        .catch((e) => {
+            console.log(e);
+        });
+
+    const myLivingWageDataMap = myLivingWageData.then(function(data) {
+        let dataMap = d3.map(data, d => d.stateId);
+        console.log("Turn into map: ");
+        console.log(dataMap);
+        return dataMap;
+    })
+    .catch((e) => {
+        console.log(e);
+    });
+
+    function compareIncome(income, state, hHType) { 
+
+        let strSalaryComp;
+        let fltSalaryComp = 3.14;
+        let fltStateLivingWage = 3.14;
+        let fltIncome = parseFloat(income);
+
+        myLivingWageDataMap.then(function(data) {
+            fltStateLivingWage = data.get(state)[hHType];
+
+            console.log("income: " + income + ", state: " + state + ", living wage: " + fltStateLivingWage + "."); 
+
+            fltSalaryComp = Math.floor((fltIncome / fltStateLivingWage)*100);
+
+            console.log("fltSalaryComp: " + fltSalaryComp);
+
+            if (fltSalaryComp < 100) {
+                console.log("Percentage: " + fltSalaryComp);
+                strSalaryComp = "below";
+            }
+            else if (fltSalaryComp == 100) {
+                console.log("Percentage: " + fltSalaryComp);;
+                strSalaryComp = "exactly";
+            }
+            else if (fltSalaryComp*100 > 100) {
+                console.log("Percentage: " + fltSalaryComp);
+                strSalaryComp = "above";
+            }
+            else {
+                console.log("Something went wrong; couldn't compare income relative to living wage.");
+            }
+
+            let prettyIncome = new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR'}).format(income);
+
+            resultDisplay.innerHTML = `You are earning <i>${prettyIncome}</i> as a \
+            <i>${hHType}</i>, which is <b>${strSalaryComp}</b> \
+            the living wage in <i>${state}</i>.`;
+
+            // Compute provided income with the comparable living wage in each state
+            for(i = 0; i < stateCodes.length; i++) {
+                let fltRelIncLivingWage = Math.floor((fltIncome / data.get(stateCodes[i])[hHType])*100);
+                console.log("Income relative to " + stateCodes[i] + ": " + fltRelIncLivingWage);
+                stateRelIncLivingWage.set(stateCodes[i], {relInc: fltRelIncLivingWage});
+            }
+
+            console.log("Finished computing relative income for all states: ");
+            console.log(stateRelIncLivingWage);
+            console.log(stateRelIncLivingWage.get(state).relInc);
+
+            return strSalaryComp;            
+        })
+        .catch((e) => {
+            console.log(e);
+        });
+
+    }
+
+    function formResults() {
+
+        // Read information from the form
+        let income = document.getElementById("inputIncome").value;
+        let stateCode = document.getElementById("inputState").value;
+        let householdType = document.getElementById("inputHHType").value;
+
+        incomeComp = compareIncome(income, stateCode, householdType);
+
+    }
+
+  </script>
+
+
+</body>
+
+</html>

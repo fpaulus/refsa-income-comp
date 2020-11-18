@@ -5,7 +5,7 @@ let resultMsg = "Fill in the values above to see your results.";
 let resultDisplay = document.getElementById("showResults");
 resultDisplay.innerHTML = resultMsg;
 
-// Define state names and incomes - to be replaced by reading in the CSV file
+// Define state names to map from code to name
 let stateNames = {
   "JHR": "Johor", 
   "KDH": "Kedah",
@@ -25,62 +25,28 @@ let stateNames = {
   "WPT": "WP Putrajaya"
 };
 
-let stateLivingWagesSingle = {
-  "JHR": "2000", 
-  "KDH": "1000",
-  "KLN": "800",
-  "MLC": "2200",
-  "NSB": "2500",
-  "PHG": "1100",
-  "PNG": "2400",
-  "PRK": "1600",
-  "PRL": "1200",
-  "SBH": "600",
-  "SRK": "800",
-  "SLG": "2800",
-  "TRG": "1200",
-  "WKL": "3000",
-  "WLB": "1800",
-  "WPT": "3000"
-};
+// Define state codes as an array, primarily to loop through when calculating relative income
+let stateCodes = [
+  "JHR", 
+  "KDH",
+  "KLN",
+  "MLK",
+  "NSB",
+  "PHG",
+  "PNG",
+  "PRK",
+  "PRL",
+  "SBH",
+  "SRK",
+  "SLG",
+  "TRG",
+  "WKL",
+  "WLB",
+  "WPT"
+];
 
-let stateLivingWagesCouple = {
-  "JHR": "3000", 
-  "KDH": "1500",
-  "KLN": "1200",
-  "MLC": "3300",
-  "NSB": "3750",
-  "PHG": "1650",
-  "PNG": "3600",
-  "PRK": "1600",
-  "PRK": "1800",
-  "SBH": "900",
-  "SRK": "1200",
-  "SLG": "4200",
-  "TRG": "1800",
-  "WKL": "4500",
-  "WLB": "2700",
-  "WPT": "4500"
-};
-
-let stateLivingWagesCoupleChildren = {
-  "JHR": "4000", 
-  "KDH": "2000",
-  "KLN": "1600",
-  "MLC": "4400",
-  "NSB": "5000",
-  "PHG": "2200",
-  "PNG": "4800",
-  "PRK": "3200",
-  "PRK": "2400",
-  "SBH": "1200",
-  "SRK": "1600",
-  "SLG": "5600",
-  "TRG": "2400",
-  "WKL": "6000",
-  "WLB": "3600",
-  "WPT": "6000"
-};
+// Define a map, to be filled when computing the relative income to each state
+let stateRelIncLivingWage = new Map();
 
 // Set up the SVG area for the map
 const width = 1000;
@@ -112,7 +78,7 @@ var path = d3.geoPath()
 
 // Define color scale for the map display. 10 categories, mapped onto percentages (plotting percentages on the map)
 var colorScale = d3.scaleThreshold()
-    .domain([0,500,750,1000,1500,2000,2500,3000,4000,5000,6000])
+    .domain([0, 20, 40, 60, 80, 100, 125, 150, 200, 300])
     .range(d3.schemeRdYlGn[10]);
 
 // Define URL's for data (map and CSV state living wage data)
@@ -122,37 +88,42 @@ const myLivingWageUrl = "https://raw.githubusercontent.com/fpaulus/refsa-income-
 // Define variable to store the living wages; defining here so other functions can access it outside the Promise block.
 let myLivingWageMap;
 
+const myLivingWageData = d3.csv(myLivingWageUrl, ({stateId, single, couple, couplekids}) => ({
+  stateId: stateId, 
+  single: +single, 
+  couple: +couple,
+  couplekids: +couplekids
+}))
+  .then (function(data) {
+      console.log("CSV load: ");
+      console.log(data);
+      return data;
+  })
+  .catch((e) => {
+      console.log(e);
+  });
+
+const myLivingWageDataMap = myLivingWageData.then(function(data) {
+  let dataMap = d3.map(data, d => d.stateId);
+  console.log("Turn into map: ");
+  console.log(dataMap);
+  return dataMap;
+})
+.catch((e) => {
+  console.log(e);
+});
+
 Promise.all([
     
   // Load map data and state living wage data. Convert CSV data to numbers in one go. 
   d3.json(myMapUrl),
-  d3.csv(myLivingWageUrl, ({stateId, single, couple, couplekids}) => ({
-        stateId: stateId, 
-        single: +single, 
-        couple: +couple,
-        couplekids: +couplekids
-    })),
 ])        
     .then(function(files) {
         
         var myStates = files[0];
-        var myLivingWage = files[1];
         
         console.log("my_states: ");
         console.dir(myStates);
-        
-        console.log("my_living_wage: ");
-        console.log(myLivingWage.columns)
-        console.dir(myLivingWage);
-        
-        // Create a Map to allow for easy querying of the object
-        myLivingWageMap = d3.map(myLivingWage, d => d.stateId);
-
-        console.log("myLivingWageSingleMap.keys():");
-        console.dir(myLivingWageMap.keys());
-        console.dir(myLivingWageMap);
-        console.dir(myLivingWageMap.get("JHR").single);
-
 
         // Reverse the order of the coordinates to comply with D3 convention (counter-clockwise, opposite to geoJson RFC)
         var reverseMyStates = myStates.features.map(function (feature) {
@@ -162,6 +133,18 @@ Promise.all([
         // Check that the results are as expected
         console.log("fixed_my_states output:");
         console.dir(reverseMyStates);
+
+        // Check what's in myLivingWageDataMap
+        console.log("Inside JSON promise, what's in myLivingWageDataMap: ");
+        console.dir(myLivingWageDataMap);
+        let test = myLivingWageDataMap.then(function(data) {
+          console.log("Inside the CSV promise: " + data.get("JHR").couplekids);
+          return data.get("JHR").couplekids;
+        })
+        .catch((e) => {
+          console.log(e);
+        });
+        console.log("myLivingWageDataMap.get('JHR').couplekids = " + test);
 
         // Set the projection
         projection.fitSize([width,height],{"type": "FeatureCollection","features":reverseMyStates});
@@ -175,9 +158,10 @@ Promise.all([
             .attr("stroke-width", "0.75")
             // set the color of each state
             .attr("fill", function (d) {
-                d.total = myLivingWageMap.get(d["id"]).couplekids || 0;
+                d.total = 2500 || 0;
                 return colorScale(d.total);
             })
+            
             .on("mouseover", function(d) {		
                 d3.select(this).transition()		
                     .duration(200)		
@@ -187,7 +171,7 @@ Promise.all([
                 .duration(50)
                 .style("opacity", 1)
             
-                div.html(d.properties.name + ": " + d.total)
+                div.html(d.properties.name + ": " + d.total + "%")
                 .style("left", (d3.event.pageX + 10) + "px")
                 .style("top", (d3.event.pageY - 15) + "px");
             })
@@ -198,41 +182,92 @@ Promise.all([
                     .attr('opacity', '1');
             });
 
-        function compareIncome(income, state) {
+        console.log("SVG object: ");
+        console.log(svg);
 
-          console.log(myLivingWageMap.get[state].single)
-          
-          let strSalaryComp;
-          let fltSalaryComp;
-          let fltStateLivingWage = parseFloat(myLivingWageMap.get[state].single);
-        
-          let fltIncome = parseFloat(income);
-        
-          console.log("income: " + income + ", state: " + state + ", living wage: " + fltStateLivingWage + "."); 
-        
-          fltSalaryComp = fltIncome / fltStateLivingWage;
-        
-          if (fltSalaryComp < 1) {
-            console.log("Percentage: " + (fltSalaryComp * 100));
-            strSalaryComp = "below";
-          }
-          else if (fltSalaryComp = 1) {
-            console.log("Percentage: " + (fltSalaryComp * 100));;
-            strSalaryComp = "exactly";
-          }
-          else {
-            console.log("Percentage: " + (fltSalaryComp * 100));
-            strSalaryComp = "above";
-          }
-        
-          return strSalaryComp;
-        
-        }
+        myLivingWageDataMap.then(function(data) {
+          console.log("Coloring SVG for the first time.");
+          console.log(data);
 
+          svg.selectAll("path")
+          .attr("fill", function (d) {
+            d.total = data.get(d["id"]).single || 0;
+            return colorScale(d.total);
+          })
+        })
+        .catch((e) => {
+          console.log(e);
+        })
     })
     .catch((e) => {
         console.log(e);
     })
+
+function compareIncome(income, state, hHType) { 
+
+    let strSalaryComp;
+    let fltSalaryComp = 3.14;
+    let fltStateLivingWage = 3.14;
+    let fltIncome = parseFloat(income);
+
+    myLivingWageDataMap.then(function(data) {
+        fltStateLivingWage = data.get(state)[hHType];
+
+        console.log("income: " + income + ", state: " + state + ", living wage: " + fltStateLivingWage + "."); 
+
+        fltSalaryComp = Math.floor((fltIncome / fltStateLivingWage)*100);
+
+        console.log("fltSalaryComp: " + fltSalaryComp);
+
+        if (fltSalaryComp < 100) {
+            console.log("Percentage: " + fltSalaryComp);
+            strSalaryComp = "below";
+        }
+        else if (fltSalaryComp == 100) {
+            console.log("Percentage: " + fltSalaryComp);;
+            strSalaryComp = "exactly";
+        }
+        else if (fltSalaryComp*100 > 100) {
+            console.log("Percentage: " + fltSalaryComp);
+            strSalaryComp = "above";
+        }
+        else {
+            console.log("Something went wrong; couldn't compare income relative to living wage.");
+        }
+
+        let prettyIncome = new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR'}).format(income);
+
+        resultDisplay.innerHTML = `You are earning <i>${prettyIncome}</i> as a \
+        <i>${hHType}</i>, which is <b>${strSalaryComp}</b> \
+        the living wage in <i>${stateNames[state]}</i>.`;
+
+        console.log("Checking SVG in the .then() promise in the compareIncome() function: ");
+        console.log(svg);
+    
+        // Compute provided income with the comparable living wage in each state
+        for(var i = 0; i < stateCodes.length; i++) {
+          let fltRelIncLivingWage = Math.floor((fltIncome / data.get(stateCodes[i])[hHType])*100);
+          console.log("Income relative to " + stateCodes[i] + ": " + fltRelIncLivingWage);
+          stateRelIncLivingWage.set(stateCodes[i], {relInc: fltRelIncLivingWage});
+        }
+
+        console.log("Finished computing relative income for all states: ");
+        console.log(stateRelIncLivingWage);
+        console.log(stateRelIncLivingWage.get(state).relInc);
+
+        svg.selectAll("path")
+          .attr("fill", function (d) {
+            d.total = stateRelIncLivingWage.get(d["id"]).relInc || 0;
+            return colorScale(d.total);
+        })
+
+        return strSalaryComp;            
+    })
+    .catch((e) => {
+        console.log(e);
+    });
+
+}    
 
 function formResults() {
       
@@ -241,33 +276,7 @@ function formResults() {
   let stateCode = document.getElementById("inputState").value;
   let householdType = document.getElementById("inputHHType").value;
 
-  // Initialise and fill results variables
-  let state = stateNames[stateCode];
-  let incomeComp;
-  let household;
-
-  switch (householdType) {
-
-    case "1":
-      incomeComp = compareIncome(income, stateCode);
-      household = "single"
-      break;
-    case "2":
-      incomeComp = compareIncome(income, stateCode);
-      household = "couple"  
-      break;
-    case "3":
-      incomeComp = compareIncome(income, stateCode);
-      household = "couple with two children"
-      break;
-  }
-
-  let prettyIncome = new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR'}).format(income);
-
-  resultDisplay.innerHTML = `You are earning <i>${prettyIncome}</i> as a \
-  <i>${household}</i>, which is <b>${incomeComp}</b> \
-  the living wage in <i>${state}</i>.`;
-
+  compareIncome(income, stateCode, householdType);
 }
 
 
