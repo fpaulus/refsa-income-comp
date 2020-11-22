@@ -143,40 +143,6 @@
             .catch((e) => {
                 console.log(e);
             })
-/*
-        svg.selectAll("path")
-                .data(fixed_my_states)
-                .enter()
-                .append("path")
-                .attr("d", path)
-                .attr("stroke", "#666")
-                .attr("stroke-width", "0.5")
-                // set the color of each state
-                .attr("fill", function (d) {
-                d.total = data.get(d.id) || 0;
-                return colorScale(d.total);
-            })
-                .on("mouseover", function(d) {		
-                    d3.select(this).transition()		
-                        .duration(200)		
-                        .attr("opacity", .75);
-            
-                div.transition()
-                .duration(50)
-                .style("opacity", 1)
-            
-                div.html(d.value)
-                .style("left", (d3.event.pageX + 10) + "px")
-                .style("top", (d3.event.pageY - 15) + "px");
-            })
-            
-                .on('mouseout', function (d, i) {
-                d3.select(this).transition()
-                    .duration('50')
-                    .attr('opacity', '1');
-            });
-
-            */
 
     </script>
 

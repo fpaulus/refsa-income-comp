@@ -1,0 +1,276 @@
+/* Main styles */
+
+* {
+  box-sizing: border-box;
+}
+
+/* Typography and styling */
+
+body {
+  font-family: Helvetica, Arial, sans-serif;
+  background-color: #fefefe;
+  font-size: 18px;
+  line-height: 1.5em;
+  color: #444;
+}
+
+h1, h2, h3, h4, h5 {
+  font-size: 1em;
+  line-height: 1em;
+  font-weight: normal;
+  font-style: normal;
+}
+
+h1 {
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 2.4em;
+  letter-spacing: -1px;
+  font-weight: 300;
+  margin-top: 0.5em;
+  margin-bottom: 1.5em;
+}
+
+h2 {
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 1.2em;
+  letter-spacing: -1px;
+  font-weight: bold;
+  margin-top: 0.5em;
+  margin-bottom: 1.5em;
+}
+
+h3 {
+  font-size: 1em;
+  font-weight: bold;
+  margin-bottom: 0;
+  margin-top: 1.5em;
+}
+
+img {
+  width: 98%;
+  height: auto;
+}
+
+article {
+  margin-top: 3em;
+}
+
+article a, a:visited, a:active {
+  color: #222;
+}
+
+article a:hover {
+  color: #000;
+}
+
+article img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.nav-menu ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-menu li {
+  display: inline;
+  padding-left: 5px;
+  padding-right: 5px;
+  padding-top: 10px;
+  border-left: 1px solid #444;
+}
+
+.left-border {
+  border-left: 1px solid #444;
+}
+
+.nav-menu a, a:hover, a:active, a:visited {
+  text-decoration: none;
+  color: #444;
+}
+
+.nav-menu a:hover {
+  color: #000;
+}
+
+.nav-home a, a:hover, a:active, a:visited {
+  text-decoration: none;
+  color: #444;
+}
+
+article figure {
+  margin-top: 3em;
+  margin-bottom: 3em;
+}
+
+article figcaption h4 {
+  text-align: center;
+  font-size: .8em;
+  font-weight: bold;
+}
+
+.summary {
+  margin-top: .8em;
+  line-height: 1.2em;
+  font-size: .8em;
+}
+
+.recent-articles {
+  margin-top: 3em;
+}
+
+.recent-articles h3 {
+  font-size: 1.4em;
+}
+
+.recent-articles h4 {
+  margin-bottom: 0em;
+  font-weight: bold;
+}
+
+.recent-articles p {
+  margin-top: 0.25em;
+}
+
+/* No need for these classes, fixed by Bootstrap CSS
+.sub-form {
+  max-width: 60%;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 5px;
+  border: 1px solid #ccc;
+  background-color: #eee;
+  text-align: center;
+}
+
+.sub-form h3 {
+  margin-top: 1em;
+  margin-bottom: .5em;
+  font-size: .75em;
+  font-weight: bold;
+  color: #999;
+}
+
+.sub-form input {
+  padding: 4px 10px;
+  width: 50%;
+  margin: 5px auto;
+  margin-right: .5em;
+  padding: 7px 0;
+  font-size: .8em;
+  font-weight: bold;
+  color: #666;
+  background-color: #fff;
+  border-radius: 3px;
+  border: 1px solid rgba(200,200,200,.5);
+  outline: none;
+  text-align: center;
+  display: inline-block;
+}
+
+.sub-form input:matches([type="submit"]) {
+  width: 30%;
+  display: inline-block;
+  padding: 5px 15px;
+  margin-top: 0;
+  margin-bottom: 0;
+  font-size: .9em;
+  line-height: 20px;
+  text-align: center;
+  vertical-align: middle;
+  cursor: pointer;
+  color: #fff;
+  background-color: #005fcc;
+  border: 0;
+  border-radius: 3px;
+  font-weight: normal;
+}
+*/
+
+.subtle-note {
+  font-size: .5em;
+  font-weight: bold;
+  color: #ccc;
+}
+
+/*==========================*/
+/* DEFAULT - Mobile phones */
+/* Grid setup */
+
+.container {
+  display: grid;
+  grid-gap: calc(1vw) calc(0.25em + 1vw);
+  grid-template-columns: repeat(12, 1fr);
+  margin: 1em auto;
+  padding: 0 1em;
+  overflow: hidden;
+}
+
+[class*="col-"]  {
+  grid-column: span 12;
+/*  border: 1px solid red;  */
+}
+
+/*
+
+.nav-menu {
+  grid-column-start: 1
+}
+
+.nav-home {
+  grid-column-start: 1;
+}
+
+.main {
+  grid-column-start: 1;
+}
+
+*/
+
+.footer {
+/*  grid-column-start: 1; */
+  margin-top: 6em;
+  text-align: right;
+  font-size: .75em;
+  color: #999;
+}
+
+/*  ==================================================
+    BIG SCREENS — FOR LAPTOP PEOPLE
+    ================================================== */
+    @media ( min-width: 550px ) {
+
+      .container {
+        max-width: 1000px;
+      }
+
+      .col-4 {
+        grid-column: span 4;
+      }
+
+      .col-6 {
+        grid-column: span 6;
+      }
+
+      .col-8 {
+        grid-column: span 8;
+      }
+
+      .col-12 {
+        grid-column: span 12;
+      }
+
+      .footer {
+        margin-top: 6em;
+        text-align: right;
+        font-size: .75em;
+        color: #999;
+      }
+
+      .nav-menu ul {
+        text-align: right;
+      }
+}

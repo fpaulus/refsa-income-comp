@@ -50,20 +50,14 @@ let stateRelIncLivingWage = new Map();
 
 // Set up the SVG area for the map
 const width = 1000;
-const height = 619;
+const height = 500;
 
-const svg = d3.select("div.container").append("svg")
+const svg = d3.select("#results").append("svg")
     .attr("width", width)
     .attr("height", height)
     .style("width", "100%")
     .style("height", "auto")
     .attr("viewBox", "0 0 " + width + " " + height).style("background","#c9e8fd");
-
-
-// Set up the Div for the map tooltip
-var div = d3.select("body").append("div")	
-    .attr("class", "tooltip")				
-    .style("opacity", 0);
 
 // Define projections and path for the map
 var projection = d3.geoAlbers()
@@ -78,8 +72,41 @@ var path = d3.geoPath()
 
 // Define color scale for the map display. 10 categories, mapped onto percentages (plotting percentages on the map)
 var colorScale = d3.scaleThreshold()
-    .domain([0, 20, 40, 60, 80, 100, 125, 150, 200, 300])
+    .domain([0, 55, 70, 80, 90, 100, 110, 120, 130, 150])
     .range(d3.schemeRdYlGn[10]);
+
+// Define callout function to properly display tooltip on the map
+let callout = (g, value) => {
+  if (!value) return g.style("display", "none");
+
+  g
+      .style("display", null)
+      .style("pointer-events", "none")
+      .style("font", "10px sans-serif");
+
+  const path = g.selectAll("path")
+    .data([null])
+    .join("path")
+      .attr("fill", "white")
+      .attr("stroke", "black");
+
+  const text = g.selectAll("text")
+    .data([null])
+    .join("text")
+    .call(text => text
+      .selectAll("tspan")
+      .data((value + "").split(/\n/))
+      .join("tspan")
+        .attr("x", 0)
+        .attr("y", (d, i) => `${i * 1.1}em`)
+        .style("font-weight", (_, i) => i ? null : "bold")
+        .text(d => d));
+
+  const {x, y, width: w, height: h} = text.node().getBBox();
+
+  text.attr("transform", `translate(${-w / 2},${15 - y})`);
+  path.attr("d", `M${-w / 2 - 10},5H-5l5,-5l5,5H${w / 2 + 10}v${h + 20}h-${w + 20}z`);
+}
 
 // Define URL's for data (map and CSV state living wage data)
 const myMapUrl = "https://raw.githubusercontent.com/fpaulus/refsa-income-comp/main/MY_States.geojson";
@@ -88,15 +115,16 @@ const myLivingWageUrl = "https://raw.githubusercontent.com/fpaulus/refsa-income-
 // Define variable to store the living wages; defining here so other functions can access it outside the Promise block.
 let myLivingWageMap;
 
-const myLivingWageData = d3.csv(myLivingWageUrl, ({stateId, single, couple, couplekids}) => ({
+const myLivingWageData = d3.csv(myLivingWageUrl, ({stateId, singleUrban, singleRural, coupleUrban, coupleRural, coupleKidsUrban, coupleKidsRural}) => ({
   stateId: stateId, 
-  single: +single, 
-  couple: +couple,
-  couplekids: +couplekids
+  singleUrban: +singleUrban,
+  singleRural: +singleRural, 
+  coupleUrban: +coupleUrban,
+  coupleRural: +coupleRural,
+  coupleKidsUrban: +coupleKidsUrban,
+  coupleKidsRural: +coupleKidsRural
 }))
   .then (function(data) {
-      console.log("CSV load: ");
-      console.log(data);
       return data;
   })
   .catch((e) => {
@@ -105,8 +133,6 @@ const myLivingWageData = d3.csv(myLivingWageUrl, ({stateId, single, couple, coup
 
 const myLivingWageDataMap = myLivingWageData.then(function(data) {
   let dataMap = d3.map(data, d => d.stateId);
-  console.log("Turn into map: ");
-  console.log(dataMap);
   return dataMap;
 })
 .catch((e) => {
@@ -122,82 +148,47 @@ Promise.all([
         
         var myStates = files[0];
         
-        console.log("my_states: ");
-        console.dir(myStates);
-
         // Reverse the order of the coordinates to comply with D3 convention (counter-clockwise, opposite to geoJson RFC)
         var reverseMyStates = myStates.features.map(function (feature) {
             return turf.rewind(feature,{reverse:true});
         });
 
-        // Check that the results are as expected
-        console.log("fixed_my_states output:");
-        console.dir(reverseMyStates);
-
         // Check what's in myLivingWageDataMap
-        console.log("Inside JSON promise, what's in myLivingWageDataMap: ");
-        console.dir(myLivingWageDataMap);
         let test = myLivingWageDataMap.then(function(data) {
-          console.log("Inside the CSV promise: " + data.get("JHR").couplekids);
           return data.get("JHR").couplekids;
         })
         .catch((e) => {
           console.log(e);
         });
-        console.log("myLivingWageDataMap.get('JHR').couplekids = " + test);
 
         // Set the projection
         projection.fitSize([width,height],{"type": "FeatureCollection","features":reverseMyStates});
 
         svg.selectAll("path")
-            .data(reverseMyStates)
-            .enter()
-            .append("path")
-            .attr("d", path)
-            .attr("stroke", "#666")
-            .attr("stroke-width", "0.75")
-            // set the color of each state
-            .attr("fill", function (d) {
-                d.total = 2500 || 0;
-                return colorScale(d.total);
-            })
-            
-            .on("mouseover", function(d) {		
-                d3.select(this).transition()		
-                    .duration(200)		
-                    .attr("opacity", .75);
-        
-                div.transition()
-                .duration(50)
-                .style("opacity", 1)
-            
-                div.html(d.properties.name + ": " + d.total + "%")
-                .style("left", (d3.event.pageX + 10) + "px")
-                .style("top", (d3.event.pageY - 15) + "px");
-            })
-    
-            .on('mouseout', function (d, i) {
-                d3.select(this).transition()
-                    .duration('50')
-                    .attr('opacity', '1');
-            });
-
-        console.log("SVG object: ");
-        console.log(svg);
-
-        myLivingWageDataMap.then(function(data) {
-          console.log("Coloring SVG for the first time.");
-          console.log(data);
-
-          svg.selectAll("path")
+          .data(reverseMyStates)
+          .enter()
+          .append("path")
+          .attr("d", path)
+          .attr("stroke", "#666")
+          .attr("stroke-width", "0.75")
+          .attr("class", "state")
+          // set the color of each state
           .attr("fill", function (d) {
-            d.total = data.get(d["id"]).single || 0;
-            return colorScale(d.total);
+              d.total = 100 || 0;
+              return colorScale(d.total);
           })
-        })
-        .catch((e) => {
-          console.log(e);
-        })
+
+        const tooltip = svg.append("g");
+
+        svg
+          .selectAll(".state")
+          .on("touchmove mousemove", function(d) {
+            tooltip.call(callout, `\u0394: ${d.total-100}%
+      ${d.properties.name}`);
+            tooltip.attr("transform", `translate(${d3.mouse(this)})`);
+          })
+          .on("touchend mouseleave", () => tooltip.call(callout, null));
+        
     })
     .catch((e) => {
         console.log(e);
@@ -213,22 +204,15 @@ function compareIncome(income, state, hHType) {
     myLivingWageDataMap.then(function(data) {
         fltStateLivingWage = data.get(state)[hHType];
 
-        console.log("income: " + income + ", state: " + state + ", living wage: " + fltStateLivingWage + "."); 
-
         fltSalaryComp = Math.floor((fltIncome / fltStateLivingWage)*100);
 
-        console.log("fltSalaryComp: " + fltSalaryComp);
-
         if (fltSalaryComp < 100) {
-            console.log("Percentage: " + fltSalaryComp);
             strSalaryComp = "below";
         }
         else if (fltSalaryComp == 100) {
-            console.log("Percentage: " + fltSalaryComp);;
             strSalaryComp = "exactly";
         }
         else if (fltSalaryComp*100 > 100) {
-            console.log("Percentage: " + fltSalaryComp);
             strSalaryComp = "above";
         }
         else {
@@ -237,23 +221,17 @@ function compareIncome(income, state, hHType) {
 
         let prettyIncome = new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR'}).format(income);
 
-        resultDisplay.innerHTML = `You are earning <i>${prettyIncome}</i> as a \
-        <i>${hHType}</i>, which is <b>${strSalaryComp}</b> \
+        resultDisplay.innerHTML = `Your household is earning <i>${prettyIncome}</i>, which is <b>${strSalaryComp}</b> \
         the living wage in <i>${stateNames[state]}</i>.`;
-
-        console.log("Checking SVG in the .then() promise in the compareIncome() function: ");
-        console.log(svg);
     
         // Compute provided income with the comparable living wage in each state
         for(var i = 0; i < stateCodes.length; i++) {
           let fltRelIncLivingWage = Math.floor((fltIncome / data.get(stateCodes[i])[hHType])*100);
-          console.log("Income relative to " + stateCodes[i] + ": " + fltRelIncLivingWage);
           stateRelIncLivingWage.set(stateCodes[i], {relInc: fltRelIncLivingWage});
         }
 
         console.log("Finished computing relative income for all states: ");
         console.log(stateRelIncLivingWage);
-        console.log(stateRelIncLivingWage.get(state).relInc);
 
         svg.selectAll("path")
           .attr("fill", function (d) {
@@ -275,8 +253,19 @@ function formResults() {
   let income = document.getElementById("inputIncome").value;
   let stateCode = document.getElementById("inputState").value;
   let householdType = document.getElementById("inputHHType").value;
+  let urbanRural = document.getElementById("inputAreaType").value;
 
-  compareIncome(income, stateCode, householdType);
+  let hHType;
+
+  if (urbanRural == "Rural" && (stateCode == "WKL" || stateCode == "WPT")) {
+    alert(`No rural areas in ${stateNames[stateCode]}, defaulting to 'urban.'`);
+    hHType = householdType + "Urban";
+  }
+  else {
+    hHType = householdType + urbanRural;
+  }
+
+  compareIncome(income, stateCode, hHType);
 }
 
 
