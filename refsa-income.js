@@ -109,8 +109,9 @@ let callout = (g, value) => {
 }
 
 // Define URL's for data (map and CSV state living wage data)
-const myMapUrl = "https://raw.githubusercontent.com/fpaulus/refsa-income-comp/main/MY_States.geojson";
-const myLivingWageUrl = "https://raw.githubusercontent.com/fpaulus/refsa-income-comp/main/living_wage.csv";
+// Replace this by GitHub links when testing on a local drive.
+const myMapUrl = "MY_States.geojson";
+const myLivingWageUrl = "living_wage.csv";
 
 // Define variable to store the living wages; defining here so other functions can access it outside the Promise block.
 let myLivingWageMap;
