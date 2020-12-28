@@ -46,7 +46,7 @@ h3 {
   margin-top: 1.5em;
 }
 
-img {
+article img {
   width: 98%;
   height: auto;
 }
@@ -55,8 +55,14 @@ article {
   margin-top: 3em;
 }
 
-article a, a:visited, a:active {
+article a {
+  color: #222; 
+  border-bottom: 2px solid yellow;
+}
+
+article a:visited, a:active {
   color: #222;
+  border-bottom: 2px solid brown;
 }
 
 article a:hover {
@@ -67,6 +73,16 @@ article img {
   display: block;
   margin-left: auto;
   margin-right: auto;
+}
+
+.main a, a:hover {
+  color: #444;
+  border-bottom: 3px solid #FFDE00;
+}
+
+.main a:visited, a:active {
+  color: #444;
+  border-bottom: 3px solid #CCB100;
 }
 
 .nav-menu ul {
@@ -99,6 +115,15 @@ article img {
 .nav-home a, a:hover, a:active, a:visited {
   text-decoration: none;
   color: #444;
+}
+
+.results {
+  margin-bottom: .5em;
+  padding: .75em;
+  border-width: 1px;
+  border-style: solid;
+  border-color: #9999FF;
+  background-color: #EEEEFF;
 }
 
 article figure {
@@ -209,7 +234,7 @@ article figcaption h4 {
   overflow: hidden;
 }
 
-[class*="col-"]  {
+[class*="cols-"]  {
   grid-column: span 12;
 /*  border: 1px solid red;  */
 }
@@ -247,19 +272,19 @@ article figcaption h4 {
         max-width: 1000px;
       }
 
-      .col-4 {
+      .cols-4 {
         grid-column: span 4;
       }
 
-      .col-6 {
+      .cols-6 {
         grid-column: span 6;
       }
 
-      .col-8 {
+      .cols-8 {
         grid-column: span 8;
       }
 
-      .col-12 {
+      .cols-12 {
         grid-column: span 12;
       }
 
